@@ -28,6 +28,9 @@ export default function Home() {
               <Link href="/market" className="px-3 py-2 hover:bg-gray-100 rounded-md text-gray-600 transition">
                 二手車市場
               </Link>
+              <Link href="/partners" className="px-3 py-2 hover:bg-gray-100 rounded-md text-gray-600 transition">
+                合作夥伴
+              </Link>
 
               {/* 2. 角色專屬 */}
               {isService && (

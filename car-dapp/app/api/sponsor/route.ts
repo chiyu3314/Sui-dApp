@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         params: [
             transactionBlockKindBytes, // 1. 交易 Bytes (Base64)
             sender,                    // 2. 使用者地址
-            10000000                   // 3. Gas 預算 (10M MIST = 0.01 SUI)
+            50000000                   // 3. Gas 預算 (10M MIST = 0.01 SUI)
         ]
     };
 

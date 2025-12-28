@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+// 🔴 確保引用正確的 Hook
+import { useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { useUserAuth } from "../../hooks/useUserAuth";
-import { useCapabilities } from "../../hooks/useCapabilities"; // 引入權限 Hook
+import { useCapabilities } from "../../hooks/useCapabilities";
 import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, MODULE_NAME, AUTH_REGISTRY_ID } from "../../constants";
 import { SuiClient } from "@mysten/sui/client";
@@ -19,14 +21,13 @@ function getIssFromJwt(jwt: string) { try { return JSON.parse(atob(jwt.split('.'
 
 export default function InsurancePage() {
   const { user, logout } = useUserAuth();
-  // 🔴 檢查保險公司權限
   const { isInsurance, insuranceCapId } = useCapabilities();
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction(); // 🔴 補上這行
   
   const [carId, setCarId] = useState("");
   const [mileage, setMileage] = useState("");
   const [description, setDescription] = useState("");
   
-  // 使用 Array 儲存多個檔案
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +58,6 @@ export default function InsurancePage() {
 
   const handleSubmit = async () => {
     if (!user) return alert("請先登入");
-    // 🔴 權限檢查：必須擁有保險公司憑證
     if (!isInsurance || !insuranceCapId) return alert("錯誤：偵測不到保險公司權限 (ThirdPartyCap)");
     if (!carId) return alert("請輸入車輛 ID");
 
@@ -72,18 +72,26 @@ export default function InsurancePage() {
         tx.moveCall({
             target: `${PACKAGE_ID}::${MODULE_NAME}::add_record`,
             arguments: [
-                tx.object(insuranceCapId),    // 1. Cap (保險公司)
+                tx.object(insuranceCapId),    // 1. Cap
                 tx.object(AUTH_REGISTRY_ID),  // 2. AuthRegistry
                 tx.object(carId),             // 3. CarNFT
-                tx.pure.u8(2),                // 🔴 4. record_type (2=保險/事故)
+                tx.pure.u8(2),                // 4. record_type (2=保險)
                 tx.pure.string(description),  // 5. description
-                tx.pure.u64(Number(mileage)), // 6. new_mileage
+                tx.pure.u64(Number(mileage)), // 6. mileage
                 tx.pure.vector("string", attachmentUrls), // 7. attachments
-                tx.object("0x6"),             // 8. Clock
+                
+                // 🔴 關鍵修正：補上保養廠專用參數的「預設空值」
+                // 因為 Move 合約函式簽章是固定的，必須傳入對應數量的參數
+                tx.pure.bool(false),          // 8. is_maintenance_reset
+                tx.pure.vector("string", []), // 9. dtc_codes_cleared
+                tx.pure.option("string", null), // 10. battery_registration
+                tx.pure.u64(0),               // 11. next_service_due_km
+                
+                tx.object("0x6"),             // 12. Clock
             ]
         });
 
-        // === zkLogin + Shinami 流程 (與 Service/MintCar 保持一致) ===
+        // === zkLogin + Shinami 流程 ===
         if (user.type === "zklogin") {
             const session = (user as any).session;
             const keypairBytes = fromB64(session.ephemeralKeyPair);
@@ -129,7 +137,6 @@ export default function InsurancePage() {
 
             if (res.effects?.status.status === "success") {
                 alert(`保險紀錄新增成功!\nDigest: ${res.digest}`);
-                // 清空表單
                 setDescription("");
                 setMileage("");
                 setSelectedFiles([]);
@@ -137,8 +144,22 @@ export default function InsurancePage() {
                 throw new Error("交易失敗");
             }
         } else {
-            // 錢包流程
-            alert("請使用 Google 登入以使用保險公司功能");
+            // === 錢包流程 ===
+            tx.setSender(user.address);
+            signAndExecute(
+                { transaction: tx, options: { showEffects: true } }, 
+                { 
+                    onSuccess: (res) => { 
+                        if (res.effects?.status.status === "success") {
+                            alert("成功"); 
+                            window.location.reload(); 
+                        } else {
+                            alert("交易失敗");
+                        }
+                    },
+                    onError: (e) => alert("錢包錯誤: " + e.message)
+                }
+            );
         }
 
     } catch (e) {
@@ -172,7 +193,7 @@ export default function InsurancePage() {
 
             {/* 里程數 */}
             <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">核保時里程數 (KM)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">核保/出險時里程數 (KM)</label>
                 <input 
                     type="number" 
                     className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:bg-white outline-none" 

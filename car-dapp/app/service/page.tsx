@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+// 確保引用了正確的 Hook
+import { useSignAndExecuteTransaction } from "@mysten/dapp-kit"; 
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { useCapabilities } from "../../hooks/useCapabilities";
 import { Transaction } from "@mysten/sui/transactions";
@@ -20,12 +22,17 @@ function getIssFromJwt(jwt: string) { try { return JSON.parse(atob(jwt.split('.'
 export default function ServicePage() {
   const { user, logout } = useUserAuth();
   const { isService, serviceCapId } = useCapabilities();
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction(); 
   
   const [carId, setCarId] = useState("");
   const [mileage, setMileage] = useState("");
   const [description, setDescription] = useState("");
+  const [nextDueKm, setNextDueKm] = useState(""); 
   
-  // 使用 Array 儲存多個檔案
+  const [isReset, setIsReset] = useState(false); 
+  const [dtcCodes, setDtcCodes] = useState(""); 
+  const [batterySn, setBatterySn] = useState(""); 
+  
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,27 +50,32 @@ export default function ServicePage() {
 
   const uploadFiles = async () => {
     if (selectedFiles.length === 0) return [];
-    
     const promises = selectedFiles.map(async (file) => {
         const res = await fetch(WALRUS_PUBLISHER, { method: "PUT", body: file });
         const data = await res.json();
         const blobId = data.newlyCreated?.blobObject.blobId || data.alreadyCertified?.blobId;
         return `${WALRUS_AGGREGATOR}/${blobId}`; 
     });
-
     return Promise.all(promises);
   };
 
   const handleSubmit = async () => {
     if (!user) return alert("請先登入");
-    if (!isService || !serviceCapId) return alert("錯誤：偵測不到保養廠權限 (ThirdPartyCap)");
+    if (!isService || !serviceCapId) return alert("錯誤：偵測不到保養廠權限");
     if (!carId) return alert("請輸入車輛 ID");
 
     setLoading(true);
 
     try {
+        console.log("🚀 開始執行新增紀錄...");
+        console.log("   - Service Cap ID:", serviceCapId);
+        console.log("   - Target Car ID:", carId);
+        console.log("   - Input Mileage:", mileage);
+
         const attachmentUrls = await uploadFiles();
-        console.log("附件上傳完成:", attachmentUrls);
+        
+        const dtcList = dtcCodes.split(",").map(s => s.trim()).filter(s => s !== "");
+        const batteryOpt = batterySn.trim() === "" ? null : batterySn.trim(); 
 
         const tx = new Transaction();
         
@@ -73,21 +85,27 @@ export default function ServicePage() {
                 tx.object(serviceCapId),
                 tx.object(AUTH_REGISTRY_ID),
                 tx.object(carId),
-                tx.pure.u8(1),
+                tx.pure.u8(1), // record_type = 1 (Service)
                 tx.pure.string(description),
                 tx.pure.u64(Number(mileage)),
                 tx.pure.vector("string", attachmentUrls),
-                tx.object("0x6"),
+                // 專業欄位
+                tx.pure.bool(isReset),
+                tx.pure.vector("string", dtcList),
+                tx.pure.option("string", batteryOpt),
+                tx.pure.u64(Number(nextDueKm) || 0),
+                tx.object("0x6"), // Clock
             ]
         });
 
-        // === zkLogin + Shinami 流程 ===
+        // === zkLogin 流程 ===
         if (user.type === "zklogin") {
             const session = (user as any).session;
             const keypairBytes = fromB64(session.ephemeralKeyPair);
             const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(keypairBytes);
             const pubKey = ephemeralKeyPair.getPublicKey();
 
+            // ZKP
             const zkpResponse = await fetch("/api/zkp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -103,6 +121,7 @@ export default function ServicePage() {
             const trueAddress = computeZkLoginAddressFromSeed(BigInt(zkp.addressSeed), getIssFromJwt(session.jwt));
             tx.setSender(trueAddress);
 
+            // Shinami
             const suiClient = new SuiClient({ url: SUI_RPC_URL });
             const txBytes = await tx.build({ client: suiClient, onlyTransactionKind: true });
             const sponsorRes = await fetch("/api/sponsor", {
@@ -111,6 +130,7 @@ export default function ServicePage() {
             });
             const sponsoredData = await sponsorRes.json();
 
+            // Sign
             const sponsoredTx = Transaction.from(fromB64(sponsoredData.bytes));
             const { signature: userSignature } = await sponsoredTx.sign({ client: suiClient, signer: ephemeralKeyPair });
             const zkSignature = getZkLoginSignature({
@@ -119,29 +139,57 @@ export default function ServicePage() {
                 userSignature,
             });
 
+            // Execute
             const res = await suiClient.executeTransactionBlock({
                 transactionBlock: sponsoredData.bytes,
                 signature: [zkSignature, sponsoredData.signature],
                 options: { showEffects: true }
             });
 
-            if (res.effects?.status.status === "success") {
-                alert(`紀錄新增成功!\nDigest: ${res.digest}`);
-                // 🔴 修正這裡：清除狀態使用正確的名稱
-                setDescription("");
-                setMileage("");
-                setSelectedFiles([]); // <--- 改成這個
-            } else {
-                throw new Error("交易失敗");
+            // 🔴 詳細錯誤檢查
+            if (res.effects?.status.status === "failure") {
+                const errorMsg = res.effects.status.error || "未知錯誤";
+                console.error("❌ 鏈上執行失敗:", errorMsg);
+                
+                // 解析常見錯誤碼 (根據 vehicle.move 定義)
+                if (errorMsg.includes("code: 2")) throw new Error("權限不足 (E_NOT_AUTHORIZED) - Cap 無效或未授權");
+                if (errorMsg.includes("code: 3")) throw new Error("里程數倒退 (E_MILEAGE_ROLLBACK) - 輸入的里程小於當前里程");
+                if (errorMsg.includes("code: 5")) throw new Error("類型錯誤 (E_TYPE_MISMATCH) - 保養廠不能新增事故紀錄");
+                
+                throw new Error("鏈上拒絕: " + errorMsg);
             }
+
+            alert(`紀錄新增成功!\nDigest: ${res.digest}`);
+            window.location.reload();
+
         } else {
-            // 錢包流程 (暫時省略，邏輯同上)
-            alert("請使用 Google 登入以使用保養廠功能");
+            // === 錢包流程 ===
+            tx.setSender(user.address);
+            signAndExecute(
+                { transaction: tx, options: { showEffects: true } }, 
+                { 
+                    onSuccess: (res) => { 
+                       // 🔴 錢包錯誤檢查
+                       const status = res.effects?.status?.status;
+                       if (status === "failure") {
+                           const err = res.effects?.status?.error || "";
+                           console.error("❌ 錢包執行失敗:", err);
+                           if (err.includes("code: 3")) alert("失敗：里程數不可倒退！");
+                           else if (err.includes("code: 2")) alert("失敗：權限無效！");
+                           else alert("交易失敗：" + err);
+                       } else {
+                           alert("成功"); 
+                           window.location.reload(); 
+                       }
+                    },
+                    onError: (e) => alert("錢包錯誤: " + e.message)
+                }
+            );
         }
 
     } catch (e) {
-        console.error(e);
-        alert("失敗: " + (e as Error).message);
+        console.error("❌ 流程崩潰:", e);
+        alert("操作失敗: " + (e as Error).message);
     } finally {
         setLoading(false);
     }
@@ -150,77 +198,78 @@ export default function ServicePage() {
   if (!user) return <div className="p-8">請先登入</div>;
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-3xl mx-auto">
+        {/* ... (UI 部分保持不變，直接複製原本的即可) ... */}
+        {/* 為節省篇幅，請保留你原本的 UI return，只要替換上面的邏輯部分 */}
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold text-gray-800">🔧 保養廠作業系統</h1>
             <button onClick={logout} className="text-sm text-red-500 hover:underline">登出</button>
         </div>
 
         <div className="flex flex-col gap-6 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">車輛 ID (Object ID)</label>
-                <input 
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition" 
-                    value={carId} 
-                    onChange={e => setCarId(e.target.value)} 
-                    placeholder="0x..." 
-                />
+            <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">車輛 ID (Object ID)</label>
+                    <input className="w-full px-4 py-2 border rounded-lg bg-gray-50 font-mono text-sm" 
+                        value={carId} onChange={e => setCarId(e.target.value)} placeholder="0x..." />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">本次里程數 (KM)</label>
+                    <input type="number" className="w-full px-4 py-2 border rounded-lg" 
+                        value={mileage} onChange={e => setMileage(e.target.value)} />
+                </div>
             </div>
 
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">最新里程數 (KM)</label>
-                <input 
-                    type="number" 
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:bg-white outline-none" 
-                    value={mileage} 
-                    onChange={e => setMileage(e.target.value)} 
-                />
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h3 className="text-sm font-bold text-blue-800 mb-3">🛠️ 專業檢修數據</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">下次建議保養里程</label>
+                        <input type="number" className="w-full px-3 py-2 border rounded bg-white" 
+                            value={nextDueKm} onChange={e => setNextDueKm(e.target.value)} placeholder="e.g. 15000" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">電瓶序號 (選填)</label>
+                        <input className="w-full px-3 py-2 border rounded bg-white" 
+                            value={batterySn} onChange={e => setBatterySn(e.target.value)} placeholder="更換時填寫" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">DTC 故障碼 (逗號分隔)</label>
+                        <input className="w-full px-3 py-2 border rounded bg-white font-mono text-sm" 
+                            value={dtcCodes} onChange={e => setDtcCodes(e.target.value)} placeholder="P0300, P0171..." />
+                    </div>
+                    <div className="md:col-span-2 flex items-center gap-2">
+                        <input type="checkbox" id="reset" className="w-4 h-4" 
+                            checked={isReset} onChange={e => setIsReset(e.target.checked)} />
+                        <label htmlFor="reset" className="text-sm text-gray-700">已執行保養燈歸零 (Maintenance Reset)</label>
+                    </div>
+                </div>
             </div>
 
             <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">維修內容說明</label>
-                <textarea 
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:bg-white h-32 resize-none outline-none" 
-                    value={description} 
-                    onChange={e => setDescription(e.target.value)} 
-                    placeholder="例如：更換機油、輪胎定位..."
-                />
+                <textarea className="w-full px-4 py-2 border rounded-lg h-24 resize-none" 
+                    value={description} onChange={e => setDescription(e.target.value)} />
             </div>
 
             <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">附件照片/文件</label>
-                
-                <input 
-                    type="file" 
-                    multiple 
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileSelect}
-                />
-
-                <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition mb-3"
-                >
-                    📎 選擇檔案 (支援多選)
+                <label className="block text-sm font-semibold text-gray-700 mb-2">附件 (維修單/照片)</label>
+                <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition mb-3">
+                    📎 選擇檔案
                 </button>
-
                 <div className="space-y-2">
                     {selectedFiles.map((f, i) => (
-                        <div key={i} className="flex justify-between items-center bg-blue-50 px-3 py-2 rounded text-sm text-blue-800">
+                        <div key={i} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm">
                             <span>{f.name}</span>
-                            <button onClick={() => removeFile(i)} className="text-blue-400 hover:text-red-500">✕</button>
+                            <button onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600">✕</button>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <button 
-                onClick={handleSubmit} 
-                disabled={loading} 
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg hover:shadow-lg transition disabled:bg-gray-300"
-            >
-                {loading ? "資料寫入中..." : "確認送出"}
+            <button onClick={handleSubmit} disabled={loading} className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg shadow transition disabled:bg-gray-300">
+                {loading ? "上鏈中..." : "寫入區塊鏈"}
             </button>
         </div>
     </div>

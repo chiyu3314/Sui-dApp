@@ -1,6 +1,6 @@
 import { useSuiClient } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
-import { normalizeSuiAddress } from "@mysten/sui/utils"; // 🔴 引入標準化工具
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 import { CAR_REGISTRY_ID } from "../constants";
 
 const WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space/v1/blobs";
@@ -50,6 +50,15 @@ export function useCars(ownerFilter?: string) {
             let rawImg = display?.image_url || display?.url || fields?.image_url || fields?.url;
             if (typeof rawImg === 'object') rawImg = undefined;
 
+            // 處理 Price Option (Sui Move Option 在 JSON 裡可能是 null 或 { fields: { vec: [...] } })
+            // 但通常透過 RPC 讀取時，如果是 u64 Option:
+            // 有值: fields.price (number)
+            // 沒值: null
+            let price = null;
+            if (fields.price !== null && fields.price !== undefined) {
+                price = fields.price;
+            }
+
             return {
                 id: obj.data?.objectId,
                 owner: fields.owner, 
@@ -58,18 +67,23 @@ export function useCars(ownerFilter?: string) {
                 model: fields.model,
                 year: fields.year,
                 mileage: fields.current_mileage,
-                imageUrl: getImageUrl(rawImg)
+                imageUrl: getImageUrl(rawImg),
+                isListed: fields.is_listed, // 這是 boolean
+                price: price
             };
         }).filter(c => c !== null);
 
-        // 4. 過濾 (Address Normalization)
+        // 4. 過濾邏輯
         if (ownerFilter) {
-            // 🔴 關鍵修正：將兩邊地址都標準化後再比對
+            // A. 我的車庫：只看 Owner
             const target = normalizeSuiAddress(ownerFilter);
             const myCars = loadedCars.filter(c => normalizeSuiAddress(c.owner) === target);
             setCars(myCars);
         } else {
-            setCars(loadedCars);
+            // B. 二手市場：嚴格過濾 isListed === true
+            // 🔴 關鍵：這裡會把剛鑄造(預設 false)的車濾掉
+            const marketCars = loadedCars.filter(c => c.isListed === true);
+            setCars(marketCars);
         }
 
       } catch (e) {
