@@ -38,9 +38,9 @@ export function AdminPanel() {
         ]
     });
 
-    signAndExecute({ transaction: tx, options: { showEffects: true } }, {
-        onSuccess: () => { alert("授權成功！"); setLoading(false); },
-        onError: (e) => { alert("失敗: " + e.message); setLoading(false); }
+    signAndExecute({ transaction: tx }, {
+      onSuccess: () => { alert("授權成功！"); setLoading(false); },
+      onError: (e) => { alert("失敗: " + e.message); setLoading(false); }
     });
   };
 
