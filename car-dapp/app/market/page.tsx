@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { LoginSection } from "../../components/LoginSection";
 import { useCars } from "../../hooks/useCars";
+import Home from "../page";
 
 export default function MarketPage() {
-  const { cars, isLoading } = useCars(); // 核心邏輯：抓取資料
+  const { cars, isLoading, refetch } = useCars(); // 核心邏輯：抓取資料
 
   return (
     // 全局背景設定
@@ -26,10 +27,10 @@ export default function MarketPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-4 group cursor-pointer">
                 <div className="w-8 h-8 text-[#06e0f9] animate-pulse flex items-center justify-center">
-                    <span className="text-2xl">🚗</span>
+                    <span className="text-2xl">⇦</span>
                 </div>
                 <h2 className="text-[#06e0f9] font-['Press_Start_2P',_cursive] text-sm md:text-base leading-tight tracking-wider group-hover:text-white transition-colors">
-                    NEON MOTORS
+                    Home
                 </h2>
             </Link>
             <div className="flex items-center gap-4">
@@ -68,7 +69,22 @@ export default function MarketPage() {
                 <label className="flex flex-col flex-[2] w-full gap-2">
                     <span className="text-xs text-[#06e0f9] font-bold tracking-widest uppercase ml-1">Vehicle Identifier</span>
                     <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#29B6F6]">🔍</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#29B6F6]">
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            strokeWidth={2} 
+                            stroke="currentColor" 
+                            className="w-5 h-5"
+                        >
+                            <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" 
+                            />
+                        </svg>
+                        </span>
                         <input className="w-full rounded-lg border-2 border-[#112233] bg-[#050b14] text-white focus:border-[#06e0f9] focus:ring-0 focus:shadow-[0_0_5px_#06e0f9] placeholder:text-gray-600 h-12 pl-12 pr-4 font-mono text-sm transition-all outline-none" placeholder="Search Make, Model, or VIN..." />
                     </div>
                 </label>
@@ -100,9 +116,15 @@ export default function MarketPage() {
                     </label>
                 </div>
                 {/* Button */}
-                <button className="w-full lg:w-auto min-w-[140px] h-12 bg-[#06e0f9] text-[#050b14] font-['Press_Start_2P',_cursive] text-xs flex items-center justify-center gap-2 hover:bg-white hover:shadow-[0_0_10px_#06e0f9] transition-all duration-200 rounded-lg lg:ml-2 mt-4 lg:mt-0">
-                    <span>📡</span> SCAN
+                <button
+                type="button"
+                onClick={refetch}
+                disabled={isLoading}
+                className="w-full lg:w-auto min-w-[140px] h-12 bg-[#06e0f9] text-[#050b14] font-['Press_Start_2P',_cursive] text-xs flex items-center justify-center gap-2 hover:bg-white hover:shadow-[0_0_10px_#06e0f9] transition-all duration-200 rounded-lg lg:ml-2 mt-4 lg:mt-0 disabled:opacity-50"
+                >
+                {isLoading ? "SCANNING..." : "SCAN"}
                 </button>
+
             </div>
         </section>
 

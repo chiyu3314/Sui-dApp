@@ -18,7 +18,7 @@ function getIssFromJwt(jwt: string): string {
 export default function AuthPage() {
   const router = useRouter();
   const flow = useEnokiFlow();
-  const [status, setStatus] = useState("正在處理 Google 登入...");
+  const [status, setStatus] = useState("Google Login...");
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -32,7 +32,7 @@ export default function AuthPage() {
         if (!window.location.hash) return;
 
         try {
-            console.log("執行 SDK 驗證...");
+            console.log("SDK verification...");
             
             // 1. SDK 處理回調
             // @ts-ignore
@@ -48,9 +48,9 @@ export default function AuthPage() {
             }
 
             if (session && session.jwt && session.ephemeralKeyPair) {
-                setStatus("正在計算真實鏈上地址...");
+                setStatus("Get the on-chain address...");
                 
-                // 🔴 關鍵步驟：在這裡生成 ZKP 並算出真實地址 (Address B)
+                // 在這裡生成 ZKP 並算出真實地址 (Address B)
                 try {
                     const enokiClient = new EnokiClient({
                         apiKey: process.env.NEXT_PUBLIC_ENOKI_PUBLIC_KEY!
@@ -71,30 +71,30 @@ export default function AuthPage() {
 
                     // 算出地址 B
                     const trueAddress = computeZkLoginAddressFromSeed(BigInt(zkp.addressSeed), getIssFromJwt(session.jwt));
-                    console.log("✅ 真實地址計算完成:", trueAddress);
+                    console.log("真實地址計算完成:", trueAddress);
 
                     // 將正確地址寫入 Session 物件
                     session.address = trueAddress;
 
                 } catch (calcError) {
-                    console.error("⚠️ 地址計算失敗 (將使用預設地址):", calcError);
+                    console.error("Address calculation failed (using the default address):", calcError);
                     // 如果計算失敗，我們還是存 session，避免卡死，但在 Console 留紀錄
                 }
 
                 // 3. 存入 LocalStorage
                 window.localStorage.setItem("demo_zk_session", JSON.stringify(session));
                 
-                setStatus("登入成功！跳轉中...");
+                setStatus("Login successful!");
                 setTimeout(() => {
                     window.location.href = "/";
                 }, 500);
             } else {
-                throw new Error("無法取得 Session 資料");
+                throw new Error("Unable to retrieve session data");
             }
 
         } catch (e) {
             console.error(e);
-            setStatus("登入失敗: " + (e as Error).message);
+            setStatus("Login failed: " + (e as Error).message);
         }
     };
 

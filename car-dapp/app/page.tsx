@@ -42,10 +42,15 @@ export default function Home() {
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="text-[#00E5FF] group-hover:animate-pulse text-3xl filter drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">
-                🚗
+              <span className="text-[#06e0f9] drop-shadow-[0_0_10px_rgba(6,224,249,0.7)]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-10 h-10 animate-[spin_10s_linear_infinite]">
+                <circle cx="12" cy="12" r="9" strokeDasharray="4 4" />
+                <circle cx="12" cy="12" r="5" className="animate-pulse" />
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" strokeLinecap="round" />
+              </svg>
+            </span>
               </div>
               <div>
-                <h1 className="font-['Press_Start_2P',_cursive] text-xs text-[#00E5FF] tracking-widest mb-1">SYSTEM ONLINE</h1>
                 <h2 className="font-bold text-xl text-white tracking-wider group-hover:text-[#00E5FF] transition-colors">VIBICLE</h2>
               </div>
             </Link>

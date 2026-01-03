@@ -346,6 +346,13 @@ export default function CarDetailPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="bg-[#0a1625] border border-[#21464a] p-4 rounded hover:border-[#29B6F6]/50 transition-colors group col-span-2">
+                <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">OBJECT ID</div>
+                <div className="text-white font-mono text-sm break-all group-hover:text-[#29B6F6]">
+                    {car.id}
+                </div>
+                </div>
+
                     <div className="bg-[#0a1625] border border-[#21464a] p-4 rounded hover:border-[#29B6F6]/50 transition-colors group">
                         <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">VIN</div>
                         <div className="text-white font-mono text-sm truncate group-hover:text-[#29B6F6]">{car.vin}</div>

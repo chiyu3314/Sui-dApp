@@ -135,38 +135,38 @@ export default function InsurancePage() {
             });
 
             if (res.effects?.status.status === "success") {
-                alert(`保險紀錄新增成功!\nDigest: ${res.digest}`);
+                alert(`Insurance record added successfully!\nDigest: ${res.digest}`);
                 setDescription("");
                 setMileage("");
                 setSelectedFiles([]);
                 window.location.reload();
             } else {
-                throw new Error("交易失敗");
+                throw new Error("Transaction failed");
             }
         } else {
             // === 錢包流程 (修正版) ===
             tx.setSender(user.address);
             
-            // 🔴 修正：移除 options 參數，避免 TypeScript 報錯
+            // 修正：移除 options 參數，避免 TypeScript 報錯
             signAndExecute(
                 { transaction: tx }, 
                 { 
                     onSuccess: (res) => { 
-                        // 🔴 修正：簡化成功判斷 (不讀取 effects)
-                        alert("保險紀錄新增成功!\nDigest: " + res.digest);
+                        // 修正：簡化成功判斷 (不讀取 effects)
+                        alert("Insurance record added successfully!\nDigest: " + res.digest);
                         setDescription("");
                         setMileage("");
                         setSelectedFiles([]);
                         window.location.reload();
                     },
-                    onError: (e) => alert("錢包錯誤: " + e.message)
+                    onError: (e) => alert("wallet error: " + e.message)
                 }
             );
         }
 
     } catch (e) {
         console.error(e);
-        alert("失敗: " + (e as Error).message);
+        alert("failed: " + (e as Error).message);
     } finally {
         setLoading(false);
     }

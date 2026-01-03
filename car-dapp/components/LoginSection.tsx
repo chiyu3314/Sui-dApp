@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserAuth } from "../hooks/useUserAuth"; // 🔴 復用這個最強 Hook
+import { useUserAuth } from "../hooks/useUserAuth"; 
 import { ConnectButton } from "@mysten/dapp-kit";
 import { useState } from "react";
 
@@ -17,7 +17,7 @@ export function LoginSection() {
     }
   };
 
-  if (isLoading) return <div className="text-sm text-gray-400">載入中...</div>;
+  if (isLoading) return <div className="text-sm text-gray-400">loading...</div>;
 
   // 1. zkLogin 登入狀態
   if (user?.type === "zklogin") {
@@ -52,7 +52,7 @@ export function LoginSection() {
             onClick={logout} 
             className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition border border-red-100"
         >
-          登出
+          Logout
         </button>
       </div>
     );
@@ -71,12 +71,12 @@ export function LoginSection() {
         className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition shadow-sm"
       >
         <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="G" />
-        Google 登入
+        Google Login
       </button>
       
       <span className="text-gray-400 text-sm">或</span>
       
-      <ConnectButton connectText="連接錢包" />
+      <ConnectButton connectText="wallet connect" />
     </div>
   );
 }

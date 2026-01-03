@@ -29,15 +29,46 @@ export function LandingLogin() {
                 {/* Logo 區 */}
                 <div className="mb-10 flex flex-col items-center gap-4 text-center">
                     <div className="flex items-center justify-center p-4 rounded-full border-2 border-[#06e0f9] bg-[#06e0f9]/20 shadow-[0_0_15px_rgba(6,224,249,0.5)]">
-                        <span className="text-4xl">🎮</span>
+                        <span className="text-[#29B6F6]">
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    fill="none" 
+    viewBox="0 0 24 24" 
+    strokeWidth={1.5} 
+    stroke="currentColor" 
+    className="w-12 h-12"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M19.35 18.5a9 9 0 1 0-14.7 0" 
+    />
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M12 11.25v.008h.008V11.25H12Z" 
+    />
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M14.835 8.165 12 11.25" 
+    />
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M9 18h6" 
+    />
+  </svg>
+</span>
                     </div>
                     <div className="space-y-2">
-                        <h1 className="font-['Press_Start_2P',_cursive] text-2xl sm:text-3xl text-[#06e0f9] cyber-glow-text leading-tight uppercase tracking-wider">
-                            SUI CYBER<br/>CARS
-                        </h1>
-                        <p className="text-[#29B6F6]/80 text-xs tracking-[0.3em] font-bold uppercase border-b border-[#06e0f9]/30 pb-2 inline-block">
-                            ENTER THE GRID
-                        </p>
+<h1 className="font-['Press_Start_2P',_cursive] text-2xl sm:text-3xl text-[#06e0f9] cyber-glow-text leading-tight uppercase tracking-wider">
+    CYBER<br/>PROTOCOL
+</h1>
+<p className="text-[#29B6F6]/80 text-[10px] tracking-[0.2em] font-bold uppercase border-l-4 border-[#06e0f9] pl-2 py-1 inline-block bg-[#06e0f9]/5">
+    {/* 推薦使用這個標語，非常有科技感 */}
+    STATUS: SYSTEM_LINK_ESTABLISHED
+</p>
                     </div>
                 </div>
 

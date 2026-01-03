@@ -21,6 +21,7 @@ export default function PartnersPage() {
   const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedCapIds, setExpandedCapIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -75,6 +76,11 @@ export default function PartnersPage() {
       setFilteredPartners(filtered);
   }, [searchTerm, partners]);
 
+  const toggleCapId = (capId: string) => {
+  setExpandedCapIds((prev) => ({ ...prev, [capId]: !prev[capId] }));
+};
+
+
   return (
     <div className="min-h-screen bg-[#050b14] text-white font-display overflow-x-hidden relative selection:bg-[#06e0f9] selection:text-background-dark">
         {/* Background Grid */}
@@ -86,10 +92,10 @@ export default function PartnersPage() {
                 <div className="flex items-center gap-4 group cursor-pointer">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="size-8 text-[#06e0f9] animate-pulse flex items-center justify-center">
-                            <span className="text-3xl">🕸️</span>
+                            <span className="text-3xl">⇦</span>
                         </div>
                         <h2 className="text-[#06e0f9] text-sm md:text-base font-['Press_Start_2P',_cursive] leading-tight tracking-widest group-hover:text-white transition-all">
-                            CYBER.NET
+                            Home
                         </h2>
                     </Link>
                 </div>
@@ -126,14 +132,30 @@ export default function PartnersPage() {
                                 <div className="absolute inset-0 bg-[#06e0f9]/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div className="relative z-10 flex w-full bg-[#0a1520] border border-[#29B6F6]/50 group-hover:border-[#06e0f9] transition-colors clip-path-polygon">
                                     <div className="flex items-center justify-center pl-4 text-[#29B6F6]">
-                                        <span>🔍</span>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#29B6F6]">
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            strokeWidth={2} 
+                            stroke="currentColor" 
+                            className="w-5 h-5"
+                        >
+                            <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" 
+                            />
+                        </svg>
+                        </span>
                                     </div>
                                     <input 
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="flex-1 bg-transparent border-none text-white placeholder-[#29B6F6]/50 focus:ring-0 text-sm md:text-base font-mono px-4 uppercase outline-none" 
-                                        placeholder="SEARCH_ENTITY_ID..." 
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    /* 改動點：將 px-4 換成 pl-12 pr-4 */
+                                    className="flex-1 bg-transparent border-none text-white placeholder-[#29B6F6]/50 focus:ring-0 text-sm md:text-base font-mono pl-12 pr-4 uppercase outline-none" 
+                                    placeholder="SEARCH_ENTITY_ID..." 
                                     />
                                     <button className="px-6 h-full bg-[#29B6F6]/20 hover:bg-[#06e0f9] hover:text-black text-[#06e0f9] font-bold tracking-widest text-xs md:text-sm transition-colors border-l border-[#29B6F6]/50">
                                         SCAN
@@ -192,9 +214,17 @@ export default function PartnersPage() {
                                     </div>
                                     <div className="border-t border-white/5 pt-4">
                                         <p className="text-gray-400 text-xs font-mono mb-1">CAP ID:</p>
-                                        <p className="text-[#29B6F6] text-xs font-mono truncate cursor-pointer hover:text-white" title={p.id}>
-                                            {p.id}
+                                        <p
+                                        className={[
+                                            "text-[#29B6F6] text-xs font-mono cursor-pointer hover:text-white transition-colors",
+                                            expandedCapIds[p.id] ? "break-all whitespace-normal" : "truncate whitespace-nowrap",
+                                        ].join(" ")}
+                                        title={p.id}
+                                        onClick={() => toggleCapId(p.id)}
+                                        >
+                                        {p.id}
                                         </p>
+
                                     </div>
                                 </div>
                             </div>

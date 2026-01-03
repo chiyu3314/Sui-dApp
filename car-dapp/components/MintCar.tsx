@@ -175,12 +175,26 @@ export function MintCar() {
                             <input className="font-mono bg-transparent text-[#29B6F6] px-2 py-1 rounded-md w-full text-sm select-all cursor-text focus:ring-0 focus:border-transparent outline-none" 
                                 readOnly value={vin} />
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(vin)} className="p-2 text-gray-500 hover:text-[#00E5FF] transition-colors duration-200" title="Copy code">
-                            📋
-                        </button>
-                        <button onClick={() => setVin(generateRandomVIN())} className="p-2 text-gray-500 hover:text-[#00E5FF] transition-colors duration-200" title="Regenerate code">
-                            🔄
-                        </button>
+                            <button 
+                            onClick={() => setVin(generateRandomVIN())} 
+                            className="group p-2 text-gray-500 hover:text-[#00E5FF] transition-all duration-200 active:scale-90" 
+                            title="Regenerate code"
+                            >
+                            <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                strokeWidth={2} 
+                                stroke="currentColor" 
+                                className="w-5 h-5 transition-transform duration-500 group-hover:rotate-180"
+                            >
+                                <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" 
+                                />
+                            </svg>
+                            </button>
                     </div>
                 </div>
 
@@ -194,7 +208,17 @@ export function MintCar() {
                                     <p className="text-[#00E5FF] font-['Press_Start_2P',_cursive] text-xs">{file.name}</p>
                                 ) : (
                                     <>
-                                        <span className="text-4xl text-[#29B6F6] mb-3">📷</span>
+                                        <svg 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        fill="none" 
+                                        viewBox="0 0 24 24" 
+                                        strokeWidth={1.5} 
+                                        stroke="currentColor" 
+                                        className="w-10 h-10 text-[#29B6F6] mb-3"
+                                        >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                                        </svg>
                                         <p className="mb-2 text-sm text-[#29B6F6] font-['Press_Start_2P',_cursive]"><span className="font-bold">CLICK TO UPLOAD</span> OR DRAG & DROP</p>
                                         <p className="text-xs text-gray-500 font-sans">SVG, PNG, JPG OR GIF (MAX. 5MB)</p>
                                     </>
@@ -212,7 +236,7 @@ export function MintCar() {
                     className="w-full bg-[#00E5FF] text-[#050b14] font-bold text-base py-4 px-6 rounded-sm hover:bg-white hover:shadow-[0_0_15px_rgba(0,229,255,0.8)] transition-all transform hover:-translate-y-1 relative overflow-hidden group font-['Press_Start_2P',_cursive] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span className="relative z-10 flex items-center justify-center gap-2">
-                        {loading ? "PROCESSING..." : "MINT NFT"} ✨
+                        {loading ? "PROCESSING..." : "MINT NFT"} 
                     </span>
                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out skew-x-12"></div>
                 </button>

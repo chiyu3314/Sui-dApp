@@ -60,9 +60,9 @@ export default function ServicePage() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return alert("請先登入");
-    if (!isService || !serviceCapId) return alert("錯誤：偵測不到保養廠權限");
-    if (!carId) return alert("請輸入車輛 ID");
+    if (!user) return alert("Please sign in before continuing");
+    if (!isService || !serviceCapId) return alert("Access denied: Invalid service credentials");
+    if (!carId) return alert("Please enter the target Car Object ID");
 
     setLoading(true);
 
@@ -189,11 +189,14 @@ export default function ServicePage() {
         <header className="w-full border-b-2 border-[#00E5FF] bg-[#050b14]/90 backdrop-blur-md sticky top-0 z-40 shadow-[0_0_15px_rgba(0,229,255,0.3)]">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/" className="text-[#00E5FF] hover:text-white transition-colors text-2xl font-bold">←</Link>
-                    <div>
-                        <h1 className="font-['Press_Start_2P',_cursive] text-xs text-[#00E5FF] tracking-widest mb-1">SYSTEM ONLINE</h1>
-                        <h2 className="font-bold text-xl text-white tracking-wider">SERVICE STATION v.3.0</h2>
-                    </div>
+                    <Link href="/" className="flex items-center gap-3">
+                        <div className="size-8 text-[#06e0f9] animate-pulse flex items-center justify-center">
+                            <span className="text-3xl">⇦</span>
+                        </div>
+                        <h2 className="text-[#06e0f9] text-sm md:text-base font-['Press_Start_2P',_cursive] leading-tight tracking-widest group-hover:text-white transition-all">
+                            Home
+                        </h2>
+                    </Link>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="text-right hidden sm:block">
